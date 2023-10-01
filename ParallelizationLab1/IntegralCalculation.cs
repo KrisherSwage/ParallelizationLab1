@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using System.Runtime.Remoting.Messaging;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using static System.Net.Mime.MediaTypeNames;
 
@@ -16,6 +17,9 @@ namespace ParallelizationLab1
         private static double alpha;
         private static double beta;
 
+        /// <summary>
+        /// Количество отрезков
+        /// </summary>
         private static double M;
         private static double N;
         private static double K;
@@ -25,12 +29,25 @@ namespace ParallelizationLab1
         private static double x3;
         private static double x4;
 
+        /// <summary>
+        /// Количество потоков
+        /// </summary>
         private static int fluxes;
 
+        private static double optionPerFlux;
+
+        /// <summary>
+        /// Длина отрезка. Больше отрезков - меньше длина
+        /// </summary>
         private static double lengthStrip;
 
-        private static double squareresult = 0.0;
+        /// <summary>
+        /// Итоговое значение площади
+        /// </summary>
+        private static double areaResult = 0.0;
 
+        //private static double alphaForParall;
+        //private static double betaForParall;
 
         private static void CalcIntConstr(List<string> myData)
         {
@@ -50,52 +67,108 @@ namespace ParallelizationLab1
 
             fluxes = Convert.ToInt32(myData[5]);
 
+            optionPerFlux = M / fluxes;
+
             lengthStrip = Convert.ToDouble((beta - alpha) / M);
             //Console.WriteLine($"{lengthStrip:0.0000000000}");
         }
 
         /*
             8 - c какой строки данные (эта строка нулевая)
-            leftBorder(a),rightBorder(b) - 0
-            numberOfSegments(M) - 1
-            numberOfRoots(N) - 2
-            coNormion(K) - 3
-            root1,root2,root...,rootN - 4
-            Fluxes - 5
+            leftBorder(a);rightBorder(b)	- 0
+            numberOfSegments(M)
+            numberOfRoots(N)
+            coNormion(K)
+            root1;root2;root...;rootN	- 5
+            Fluxes
             ---------------------
-            1,10
-            1000000
+            2;7,5
+            225000000
             4
             1
-            2,3,6,7
+            3;5;6;7
             1
+            ---------------------
+            2;7,5
+            225000000
+            4
+            1
+            3;5;6;7
+            10
         */
+
+        public static object block = new object();
 
         public static double[] IntegCalculate(List<string> myData)
         {
-            CalcIntConstr(myData);
+
+            CalcIntConstr(myData); //вызываем каждый раз для новых данных
 
             Stopwatch clock = new Stopwatch();
 
-            double timeResult = 0.0;
-            squareresult = 0;
+            double timeResult = 0.0; //время подсчета площади
+            areaResult = 0;
 
-            clock.Start();
+            clock.Start(); //запускаем подсчет времени
 
-            squareresult = AsyncCalculate();
+            //squareresult = ParalCalculate();
 
-            clock.Stop();
 
+            ParalStart();
+
+
+            clock.Stop(); //останавливаем подсчет времени
+
+            double arRes = areaResult;
+            areaResult = 0;
             timeResult = clock.ElapsedMilliseconds / 1000.0;
 
-            return new double[] { timeResult, squareresult };
+            return new double[] { timeResult, arRes };
+
         }
 
-        private static double AsyncCalculate()
+        private static async void ParalStart()
         {
-            double localResult = 0.0;
-            for (double i = alpha; i <= beta; i += lengthStrip) // alpha и beta не меняются
+            //запаковываем
+            Borders borders = new Borders();
+            borders.leftBorder = alpha;
+            borders.rightBorder = alpha + (lengthStrip * optionPerFlux);
+
+            //alphaForParall = alpha;
+            //betaForParall = alpha + (lengthStrip * optionPerFlux);
+
+            for (int i = 0; i < fluxes; i++)
             {
+                ParameterizedThreadStart paramParCalThread = new ParameterizedThreadStart(ParalCalculate);
+                Thread thread = new Thread(paramParCalThread);
+                thread.Start(borders);
+
+
+                //Thread.Sleep(1000);
+                borders.leftBorder = borders.rightBorder;
+                borders.rightBorder += lengthStrip * optionPerFlux;
+
+            }
+
+            borders.leftBorder = 0;
+            borders.rightBorder = 0;
+
+        }
+
+        private static void ParalCalculate(object pocket)
+        {
+            //распаковываем
+            Borders borders = pocket as Borders;
+            double localAlpha = borders.leftBorder;
+            double localBeta = borders.rightBorder;
+            Console.WriteLine($"{localAlpha} {localBeta}");
+
+
+            for (double i = localAlpha; i <= localBeta; i += lengthStrip) // alpha и beta МЕНЯЮТСЯ
+            {
+                //Console.WriteLine($"{alphaForParall} {betaForParall}");
+                //Console.WriteLine("calculate");
+
                 double ii = i + lengthStrip; // lengthStrip не мняется
 
                 double yn0 = yFromX(i, x1, x2, x3, x4); // i в этом методе появляется
@@ -103,10 +176,11 @@ namespace ParallelizationLab1
 
                 double sn = HeightStrip(yn0, yn1) * lengthStrip;
 
-                localResult += sn;
+                areaResult += sn;
+
+                //Console.WriteLine($"{i:0.0000000000} {localBeta:0.0000000000} {Thread.CurrentThread.GetHashCode()}");
             }
 
-            return localResult;
         }
 
         private static double yFromX(double x, double a, double b, double c, double d)

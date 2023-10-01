@@ -12,13 +12,14 @@ namespace ParallelizationLab1
     {
         static void Main(string[] args)
         {
-            ReadingFile readingFile = new ReadingFile();
+            //ReadingFile readingFile = new ReadingFile();
             var myData = ReadingFile.InputDataRead();
 
+            var amOfData = ReadingFile.AmountOfData();
             //IntegralCalculation integralCalculation = new IntegralCalculation();
 
             const int nol = 0;
-            for (int j = nol; j < 7; j++)
+            for (int j = nol; j < amOfData; j++)
             {
                 var res = IntegralCalculation.IntegCalculate(myData);
 
@@ -29,7 +30,7 @@ namespace ParallelizationLab1
                 Console.WriteLine();
             }
 
-            Console.ReadKey();
+            //Console.ReadKey();
         }
     }
 }

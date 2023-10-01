@@ -13,11 +13,12 @@ namespace ParallelizationLab1
         private static int rowData = 0;
         private static int countLinesData = 0;
 
+        private static int amountOfData = 0;
+
         private static List<string> lines = new List<string>();
 
         static ReadingFile()
         {
-            //Console.WriteLine("начало конструктора");
             pathInputData = Path.Combine(Environment.CurrentDirectory, "InputData.txt");
 
             using (StreamReader reader = new StreamReader(pathInputData, Encoding.UTF8))
@@ -36,42 +37,46 @@ namespace ParallelizationLab1
             {
                 countLinesData++;
             }
-            //Console.WriteLine("конец конструктора\n");
+
+            amountOfData = lines.Count / rowData;
         }
 
         /*
             8 - c какой строки данные (эта строка нулевая)
-            leftBorder(a),rightBorder(b)
+            leftBorder(a);rightBorder(b)	- 0
             numberOfSegments(M)
             numberOfRoots(N)
             coNormion(K)
-            root1,root2,root...,rootN
+            root1;root2;root...;rootN	- 5
             Fluxes
             ---------------------
-            1,10
-            1000000
+            2;7,5
+            225000000
             4
             1
-            2,3,6,7
+            3;5;6;7
             1
         */
 
+        public static int AmountOfData()
+        {
+            return amountOfData;
+        }
+
         public static List<string> InputDataRead()
         {
-            //Console.WriteLine("начало метода");
-            //Console.WriteLine($"\n{countLinesData} - количество строк данных");
-            //Console.WriteLine($"{rowData} - c какой строки идут данные\n");
-
             List<string> myData = new List<string>();
 
             for (int i = rowData; i < countLinesData + rowData; i++)
             {
                 if (i < lines.Count)
                     myData.Add(lines[i]);
+                //else
+                //    return null;
             }
 
             rowData += (countLinesData + 1);
-            //Console.WriteLine("конец метода\n");
+
             return myData;
         }
 
