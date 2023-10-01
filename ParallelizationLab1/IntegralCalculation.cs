@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Net.Sockets;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Runtime.Remoting.Messaging;
 using System.Text;
 using System.Threading;
@@ -34,6 +36,9 @@ namespace ParallelizationLab1
         /// </summary>
         private static int fluxes;
 
+        /// <summary>
+        /// Количество расчетов на один поток
+        /// </summary>
         private static double optionPerFlux;
 
         /// <summary>
@@ -46,8 +51,10 @@ namespace ParallelizationLab1
         /// </summary>
         private static double areaResult = 0.0;
 
-        //private static double alphaForParall;
-        //private static double betaForParall;
+        private static List<Thread> threadsList = new List<Thread>();
+
+        public static object block = new object();
+
 
         private static void CalcIntConstr(List<string> myData)
         {
@@ -97,7 +104,6 @@ namespace ParallelizationLab1
             10
         */
 
-        public static object block = new object();
 
         public static double[] IntegCalculate(List<string> myData)
         {
@@ -111,11 +117,9 @@ namespace ParallelizationLab1
 
             clock.Start(); //запускаем подсчет времени
 
-            //squareresult = ParalCalculate();
-
-
             ParalStart();
 
+            ThreadExtension.WaitAll(threadsList); //бред... работает не так, как я хочу, а так, как я не понимаю
 
             clock.Stop(); //останавливаем подсчет времени
 
@@ -124,35 +128,38 @@ namespace ParallelizationLab1
             timeResult = clock.ElapsedMilliseconds / 1000.0;
 
             return new double[] { timeResult, arRes };
-
         }
 
-        private static async void ParalStart()
+        private static void ParalStart()
         {
             //запаковываем
             Borders borders = new Borders();
             borders.leftBorder = alpha;
             borders.rightBorder = alpha + (lengthStrip * optionPerFlux);
 
-            //alphaForParall = alpha;
-            //betaForParall = alpha + (lengthStrip * optionPerFlux);
+            //List<Task> tasks = new List<Task>();
+            //tasks.Add(Task.Run(Method_Monte_Karlo));
+            //await Task.WhenAll(tasks);
 
             for (int i = 0; i < fluxes; i++)
             {
-                ParameterizedThreadStart paramParCalThread = new ParameterizedThreadStart(ParalCalculate);
-                Thread thread = new Thread(paramParCalThread);
-                thread.Start(borders);
+                StartNewFlux(borders);
 
-
-                //Thread.Sleep(1000);
+                Thread.Sleep(100);
                 borders.leftBorder = borders.rightBorder;
                 borders.rightBorder += lengthStrip * optionPerFlux;
-
             }
 
             borders.leftBorder = 0;
             borders.rightBorder = 0;
+        }
 
+        private static void StartNewFlux(object bor)
+        {
+            ParameterizedThreadStart paramParCalThread = new ParameterizedThreadStart(ParalCalculate);
+            Thread thread = new Thread(paramParCalThread);
+            threadsList.Add(thread);
+            thread.Start(bor);
         }
 
         private static void ParalCalculate(object pocket)
@@ -161,14 +168,10 @@ namespace ParallelizationLab1
             Borders borders = pocket as Borders;
             double localAlpha = borders.leftBorder;
             double localBeta = borders.rightBorder;
-            Console.WriteLine($"{localAlpha} {localBeta}");
-
+            //Console.WriteLine($"localAlpha - {localAlpha}  localBeta - {localBeta}");
 
             for (double i = localAlpha; i <= localBeta; i += lengthStrip) // alpha и beta МЕНЯЮТСЯ
             {
-                //Console.WriteLine($"{alphaForParall} {betaForParall}");
-                //Console.WriteLine("calculate");
-
                 double ii = i + lengthStrip; // lengthStrip не мняется
 
                 double yn0 = yFromX(i, x1, x2, x3, x4); // i в этом методе появляется
@@ -180,7 +183,12 @@ namespace ParallelizationLab1
 
                 //Console.WriteLine($"{i:0.0000000000} {localBeta:0.0000000000} {Thread.CurrentThread.GetHashCode()}");
             }
+            //if (localBeta == beta)
+            //{
+            //    threadsList[threadsList.Count - 1].Join(); //блокирует так, что ответ неверный
+            //}
 
+            //Console.WriteLine($"\nParalCalculate закончилось - {localBeta} - {Thread.CurrentThread.GetHashCode()}");
         }
 
         private static double yFromX(double x, double a, double b, double c, double d)
