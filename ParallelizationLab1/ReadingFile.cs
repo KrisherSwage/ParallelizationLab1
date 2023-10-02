@@ -38,7 +38,7 @@ namespace ParallelizationLab1
                 countLinesData++;
             }
 
-            amountOfData = lines.Count / rowData;
+            amountOfData = (lines.Count / (rowData - 1)) - 1;
         }
 
         /*

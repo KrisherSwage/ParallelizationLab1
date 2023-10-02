@@ -13,20 +13,26 @@ namespace ParallelizationLab1
         static void Main(string[] args)
         {
             //ReadingFile readingFile = new ReadingFile(); 
-            var myData = ReadingFile.InputDataRead();
+            //var myData = ReadingFile.InputDataRead();
 
             var amOfData = ReadingFile.AmountOfData();
             //IntegralCalculation integralCalculation = new IntegralCalculation();
 
+            Console.WriteLine(amOfData);
             const int nol = 0;
             for (int j = nol; j < amOfData; j++)
             {
-                var res = IntegralCalculation.IntegCalculate(myData);
+                var myData = ReadingFile.InputDataRead();
+
+
+                //var res = IntegralCalculation.IntegCalculate(myData);
+                var res = IntegralCalcWithTasks.IntegCalculate(myData);
+
 
                 Console.WriteLine($"{res[0]} - время");
                 Console.WriteLine($"{res[1]} - площадь");
 
-                myData = ReadingFile.InputDataRead();
+                //myData = ReadingFile.InputDataRead();
                 Console.WriteLine();
             }
 

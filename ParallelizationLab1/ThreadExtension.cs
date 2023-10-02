@@ -18,7 +18,6 @@ namespace ParallelizationLab1
                 {
                     thread.Join();
                     //Console.WriteLine(thread.ThreadState);
-
                 }
             }
         }

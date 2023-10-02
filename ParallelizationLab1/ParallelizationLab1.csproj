@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="AreaResult.cs" />
     <Compile Include="Borders.cs" />
+    <Compile Include="IntegralCalcWithTasks.cs" />
     <Compile Include="ThreadExtension.cs" />
     <Compile Include="IntegralCalculation.cs" />
     <Compile Include="Program.cs" />

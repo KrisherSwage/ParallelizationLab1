@@ -1,20 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.IO;
 using System.Linq;
-using System.Net.Sockets;
-using System.Reflection;
-using System.Runtime.InteropServices;
-using System.Runtime.Remoting.Messaging;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace ParallelizationLab1
 {
-    internal class IntegralCalculation
+    internal class IntegralCalcWithTasks
     {
         private static double alpha;
         private static double beta;
@@ -88,30 +82,6 @@ namespace ParallelizationLab1
             //Console.WriteLine($"{lengthStrip:0.0000000000}");
         }
 
-        /*
-            8 - c какой строки данные (эта строка нулевая)
-            leftBorder(a);rightBorder(b)	- 0
-            numberOfSegments(M)
-            numberOfRoots(N)
-            coNormion(K)
-            root1;root2;root...;rootN	- 5
-            Fluxes
-            ---------------------
-            2;7,5
-            225000000
-            4
-            1
-            3;5;6;7
-            1
-            ---------------------
-            2;7,5
-            225000000
-            4
-            1
-            3;5;6;7
-            10
-        */
-
         public static double[] IntegCalculate(List<string> myData)
         {
 
@@ -126,24 +96,9 @@ namespace ParallelizationLab1
 
             clock.Start();
 
-            ParalStart();
-
-
-            //ThreadExtension.WaitAll(threadsList); //или это должно работать
-
-            for (int i = 0; i < threadsList.Count;) //или уже вот это
-            {
-                if (threadsList[i].ThreadState == System.Threading.ThreadState.Stopped)
-                {
-                    i++;
-                }
-            }
+            double arRes = ParalStart();
 
             clock.Stop(); //останавливаем подсчет времени
-
-            Console.WriteLine($"threadsList.Count = {threadsList.Count}");
-
-            double arRes = areaRes.Area;
 
             timeResult = clock.ElapsedMilliseconds / 1000.0;
 
@@ -154,45 +109,31 @@ namespace ParallelizationLab1
             return new double[] { timeResult, arRes };
         }
 
-        private static void ParalStart()
+        private static double ParalStart()
         {
-            //запаковываем
-            Borders borders = new Borders();
-            borders.leftBorder = alpha;
-            borders.rightBorder = alpha + (lengthStrip * optionPerFlux);
+            Task<double>[] tasks = new Task<double>[fluxes];
 
             for (int i = 0; i < fluxes; i++)
             {
-                StartNewFlux(borders);
+                double localAlpha = alpha + i * ((beta - alpha) / fluxes);
+                double localBeta = localAlpha + ((beta - alpha) / fluxes);
 
-                Thread.Sleep(100);
-                borders.leftBorder = borders.rightBorder;
-                borders.rightBorder += lengthStrip * optionPerFlux;
+                //Console.WriteLine($"{localAlpha} {localBeta}");
+                tasks[i] = Task.Run(() => ParalCalculate(localAlpha, localBeta));
             }
 
-            borders.leftBorder = 0;
-            borders.rightBorder = 0;
+            Task.WaitAll(tasks);
+
+            double totalArea = 0.0;
+            foreach (var task in tasks)
+                totalArea += task.Result;
+
+            return totalArea;
         }
 
-        private static void StartNewFlux(object bor)
+        private static double ParalCalculate(double localAlpha, double localBeta)
         {
-            ParameterizedThreadStart paramParCalThread = new ParameterizedThreadStart(ParalCalculate);
-            Thread thread = new Thread(paramParCalThread);
-
-            threadsList.Add(thread);
-
-            thread.Start(bor);
-        }
-
-        private static void ParalCalculate(object pocket)
-        {
-            //распаковываем
-            Borders borders = pocket as Borders;
-            double localAlpha = borders.leftBorder;
-            double localBeta = borders.rightBorder;
-
-            Stopwatch clock = new Stopwatch();
-            clock.Start();
+            double result = 0.0;
 
             for (double i = localAlpha; i <= localBeta; i += lengthStrip) // alpha и beta МЕНЯЮТСЯ
             {
@@ -203,17 +144,9 @@ namespace ParallelizationLab1
 
                 double sn = HeightStrip(yn0, yn1) * lengthStrip;
 
-                lock (areaRes)
-                {
-                    areaRes.Area += sn;
-                    //Console.WriteLine($"ParalCalculate - {Thread.CurrentThread.GetHashCode()} - {i}");
-                }
+                result += sn;
             }
-
-            clock.Stop();
-
-            //Console.WriteLine($"ParalCalculate закончилось - {Thread.CurrentThread.GetHashCode()}. За время - {clock.ElapsedMilliseconds / 1000.0}");
-            //Console.ReadKey();
+            return result;
         }
 
         private static double yFromX(double x, double a, double b, double c, double d)
