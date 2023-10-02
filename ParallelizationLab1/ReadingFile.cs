@@ -71,8 +71,6 @@ namespace ParallelizationLab1
             {
                 if (i < lines.Count)
                     myData.Add(lines[i]);
-                //else
-                //    return null;
             }
 
             rowData += (countLinesData + 1);
