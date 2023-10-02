@@ -43,6 +43,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AreaResult.cs" />
     <Compile Include="Borders.cs" />
     <Compile Include="ThreadExtension.cs" />
     <Compile Include="IntegralCalculation.cs" />

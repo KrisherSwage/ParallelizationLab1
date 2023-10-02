@@ -12,7 +12,7 @@ namespace ParallelizationLab1
     {
         static void Main(string[] args)
         {
-            //ReadingFile readingFile = new ReadingFile();
+            //ReadingFile readingFile = new ReadingFile(); 
             var myData = ReadingFile.InputDataRead();
 
             var amOfData = ReadingFile.AmountOfData();

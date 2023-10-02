@@ -51,9 +51,17 @@ namespace ParallelizationLab1
         /// </summary>
         private static double areaResult = 0.0;
 
+        /// <summary>
+        /// Список еще работающих потоков
+        /// </summary>
         private static List<Thread> threadsList = new List<Thread>();
 
         public static object block = new object();
+
+        /// <summary>
+        /// Экземпляр класса Arearesul. Предназначен для безопасной работы с типом Double
+        /// </summary>
+        static AreaResult areaRes = new AreaResult();
 
 
         private static void CalcIntConstr(List<string> myData)
@@ -104,7 +112,6 @@ namespace ParallelizationLab1
             10
         */
 
-
         public static double[] IntegCalculate(List<string> myData)
         {
 
@@ -116,16 +123,34 @@ namespace ParallelizationLab1
             areaResult = 0;
 
             clock.Start(); //запускаем подсчет времени
+            clock.Stop();
+
+            clock.Start();
 
             ParalStart();
 
-            ThreadExtension.WaitAll(threadsList); //бред... работает не так, как я хочу, а так, как я не понимаю
+
+            //ThreadExtension.WaitAll(threadsList); //или это должно работать
+
+            for (int i = 0; i < threadsList.Count;) //или уже вот это
+            {
+                if (threadsList[i].ThreadState == System.Threading.ThreadState.Stopped)
+                {
+                    i++;
+                }
+            }
 
             clock.Stop(); //останавливаем подсчет времени
 
-            double arRes = areaResult;
-            areaResult = 0;
+            //Console.WriteLine($"threadsList.Count = {threadsList.Count}");
+
+            double arRes = areaRes.Area;
+
             timeResult = clock.ElapsedMilliseconds / 1000.0;
+
+            areaRes.Area = 0.0;
+            clock.Reset();
+            threadsList.Clear();
 
             return new double[] { timeResult, arRes };
         }
@@ -136,10 +161,6 @@ namespace ParallelizationLab1
             Borders borders = new Borders();
             borders.leftBorder = alpha;
             borders.rightBorder = alpha + (lengthStrip * optionPerFlux);
-
-            //List<Task> tasks = new List<Task>();
-            //tasks.Add(Task.Run(Method_Monte_Karlo));
-            //await Task.WhenAll(tasks);
 
             for (int i = 0; i < fluxes; i++)
             {
@@ -158,7 +179,9 @@ namespace ParallelizationLab1
         {
             ParameterizedThreadStart paramParCalThread = new ParameterizedThreadStart(ParalCalculate);
             Thread thread = new Thread(paramParCalThread);
+
             threadsList.Add(thread);
+
             thread.Start(bor);
         }
 
@@ -168,7 +191,9 @@ namespace ParallelizationLab1
             Borders borders = pocket as Borders;
             double localAlpha = borders.leftBorder;
             double localBeta = borders.rightBorder;
-            //Console.WriteLine($"localAlpha - {localAlpha}  localBeta - {localBeta}");
+
+            Stopwatch clock = new Stopwatch();
+            clock.Start();
 
             for (double i = localAlpha; i <= localBeta; i += lengthStrip) // alpha и beta МЕНЯЮТСЯ
             {
@@ -179,16 +204,15 @@ namespace ParallelizationLab1
 
                 double sn = HeightStrip(yn0, yn1) * lengthStrip;
 
-                areaResult += sn;
-
-                //Console.WriteLine($"{i:0.0000000000} {localBeta:0.0000000000} {Thread.CurrentThread.GetHashCode()}");
+                lock (areaRes)
+                {
+                    areaRes.Area += sn;
+                }
             }
-            //if (localBeta == beta)
-            //{
-            //    threadsList[threadsList.Count - 1].Join(); //блокирует так, что ответ неверный
-            //}
 
-            //Console.WriteLine($"\nParalCalculate закончилось - {localBeta} - {Thread.CurrentThread.GetHashCode()}");
+            clock.Stop();
+
+            Console.WriteLine($"ParalCalculate закончилось - {Thread.CurrentThread.GetHashCode()}. За время - {clock.ElapsedMilliseconds / 1000.0}");
         }
 
         private static double yFromX(double x, double a, double b, double c, double d)

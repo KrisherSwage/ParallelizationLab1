@@ -17,7 +17,8 @@ namespace ParallelizationLab1
                 foreach (Thread thread in threads)
                 {
                     thread.Join();
-                    //break;
+                    //Console.WriteLine(thread.ThreadState);
+
                 }
             }
         }
