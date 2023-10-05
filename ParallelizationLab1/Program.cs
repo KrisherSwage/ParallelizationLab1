@@ -12,9 +12,10 @@ namespace ParallelizationLab1
     {
         static void Main(string[] args)
         {
+            //#error version
+
             //DataFromFile();
             DataFromAlgorithm();
-
 
         }
 

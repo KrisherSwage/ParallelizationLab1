@@ -31,11 +31,6 @@ namespace ParallelizationLab1
         private static int fluxes;
 
         /// <summary>
-        /// Количество расчетов на один поток
-        /// </summary>
-        private static double optionPerFlux;
-
-        /// <summary>
         /// Длина отрезка. Больше отрезков - меньше длина
         /// </summary>
         private static double lengthStrip;
@@ -49,8 +44,6 @@ namespace ParallelizationLab1
         /// Список еще работающих потоков
         /// </summary>
         private static List<Thread> threadsList = new List<Thread>();
-
-        public static object block = new object();
 
         /// <summary>
         /// Экземпляр класса Arearesul. Предназначен для безопасной работы с типом Double
@@ -76,10 +69,7 @@ namespace ParallelizationLab1
 
             fluxes = Convert.ToInt32(myData[5]);
 
-            optionPerFlux = M / fluxes;
-
             lengthStrip = Convert.ToDouble((beta - alpha) / M);
-            //Console.WriteLine($"{lengthStrip:0.0000000000}");
         }
 
         public static double[] IntegCalculate(List<string> myData)
@@ -89,43 +79,40 @@ namespace ParallelizationLab1
 
             Stopwatch clock = new Stopwatch();
 
-            double timeResult = 0.0; //время подсчета площади
-
             clock.Start(); //запускаем подсчет времени
-            clock.Stop();
+            clock.Stop(); //связанно с особенностями ЯП
 
             clock.Start();
 
-            double arRes = ParalStart();
+            double arRes = ParalStart(); //запуск расчета площади
 
             clock.Stop(); //останавливаем подсчет времени
 
-            timeResult = clock.ElapsedMilliseconds / 1000.0;
+            double timeResult = clock.ElapsedMilliseconds / 1000.0; //время подсчета площади
 
             areaRes.Area = 0.0;
             clock.Reset();
             threadsList.Clear();
 
-            return new double[] { timeResult, arRes };
+            return new double[] { timeResult, arRes }; //время и площадь
         }
 
         private static double ParalStart()
         {
-            Task<double>[] tasks = new Task<double>[fluxes];
+            Task<double>[] tasks = new Task<double>[fluxes]; //массив для созданных потоков
 
-            for (int i = 0; i < fluxes; i++)
+            for (int i = 0; i < fluxes; i++) //цикл для запуска новых потоков
             {
-                double localAlpha = alpha + i * ((beta - alpha) / fluxes);
-                double localBeta = localAlpha + ((beta - alpha) / fluxes);
+                double localAlpha = alpha + i * ((beta - alpha) / fluxes); //левая граница нового потока
+                double localBeta = localAlpha + ((beta - alpha) / fluxes); //правая граница нового потока
 
-                //Console.WriteLine($"{localAlpha} {localBeta}");
-                tasks[i] = Task.Run(() => ParalCalculate(localAlpha, localBeta));
+                tasks[i] = Task.Run(() => ParalCalculate(localAlpha, localBeta)); //создаем и запускаем новый поток с функцией расчета
             }
 
-            Task.WaitAll(tasks);
+            Task.WaitAll(tasks); //ждем выполнения всех потоков
 
             double totalArea = 0.0;
-            foreach (var task in tasks)
+            foreach (var task in tasks) //считаем итоговую площадь
                 totalArea += task.Result;
 
             return totalArea;
@@ -158,6 +145,5 @@ namespace ParallelizationLab1
         {
             return (yn0 + yn1) / 2;
         }
-
     }
 }
